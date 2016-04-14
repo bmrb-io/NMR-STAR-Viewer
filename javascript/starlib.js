@@ -191,7 +191,7 @@ SAVEFRAME.prototype.toHTML = function(attach_to){
         if (!offline){
             value_span.focus(function(){
                 $(this).autocomplete({
-                    source: "/dictionary/getenumerations.php?tag=".concat($(this).attr("tag")),
+                    source: "php/getenumerations.php?tag=".concat($(this).attr("tag")),
                     delay: 100,
                     minLength: 0
                 });
