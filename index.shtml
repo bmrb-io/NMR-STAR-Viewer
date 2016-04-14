@@ -1,0 +1,49 @@
+<!--#include virtual="/includes/header0.shtml" -->
+
+<!-- to display the "last modified" date of the right file in the footer -->
+<!--#set var="LASTMOD" value="$LAST_MODIFIED" -->
+
+<title>NMR-STAR file visualization tool</title>
+<script src="javascript/starlib.js" charset="utf-8"></script>
+<script src="javascript/schema.js"></script>
+<script src="javascript/sprintf.js"></script>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+
+<!--#include virtual="/includes/header1.shtml" -->
+
+<div class="contentWrap">
+    <h2>NMR-STAR data visualizer, validator, and editor</h2>
+    <form method="POST" action="" id="upload" enctype="multipart/form-data">
+        <div>
+            <P>File: <input type="file" id="nmrstar_file" name="nmrstar_file" size="46" onchange="openFile()">
+            <input type="button" onclick="star.download()" value="Download"></P>
+            <div id="parser_messages"></div>
+            <div id="dynamic_anchor"></div>
+        </div>
+    </form>
+</div>
+
+<script>
+
+debug = getURLParameter("debug");
+if (debug == null){
+    debug = "";
+}
+
+function checkEntryLoad(){
+    the_entry = getURLParameter("entry");
+    if (the_entry != null){
+        $("#parser_messages").html("Loading entry " + the_entry + "...");
+        openURL("/ftp/pub/bmrb/entry_directories/bmr" + the_entry + "/bmr" + the_entry + "_3.str");
+        $("#parser_messages").html("");
+    }
+}
+
+// Detect if we are offline or online
+if (!offline) {
+    // See if we need to load an entry if we are online
+    $( window ).load( checkEntryLoad );
+}
+
+</script>
+<!--#include virtual="/includes/footer.shtml" -->
