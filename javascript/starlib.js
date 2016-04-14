@@ -10,180 +10,23 @@ var current_chunk = "";
 var to_process = "";
 var token = "";
 var timeouts = [];
+var whitespace = " \t\n";
 
 // Include jQuery if we don't have it and set offline to true
 if (typeof jQuery == 'undefined') {
     document.write('<script type="text/javascript" src="javascript/jquery.min.js"></script>');
 
-// Keep track of whether we are imbedded in the BMRB page or not
+    // Keep track of whether we are imbedded in the BMRB page or not
     offline = true;
 } else {
     offline = false;
 }
 
-function containsIllegalNonLatinCodepoints(s) {
-    return /[^\u0000-\u00ff]/.test(s.replace(/⏎/g, "\n"));
-}
-
-function validateTag(tag, value){
-
-    // Always make sure it doesn't have unicode
-    if (containsIllegalNonLatinCodepoints(value)){
-        return "containsunicode";
-    }
-
-    // If we aren't validating, don't do anything
-    if (dont_validate){
-        return "";
-    }
-
-    // If the tag isn't in the dict it is invalid
-    if (tags[tag] == null){
-        return "nodict";
-    }
-
-    // Get the tag dict
-    var dict = tags[tag];
-
-    // Null tag is not allowed
-    if (((value == null) || ( value == "") || ( value == ".") || ( value == "?"))
-            && (dict["null_valid"] == false)){
-        return "illegalnull";
-    }
-    // Null is valid, so don't check the type if the type is null
-    else {
-        if ((value == ".") || (value == "?")){
-            return "valid";
-        }
-    }
-
-    var our_type = null;
-    // Check the data type
-    if(Number(value) == parseInt(value)) {
-        // This prevents 27.000 from being interpreted as an INT
-        if (value.indexOf(".") != -1){
-            our_type = "FLOAT";
-        }
-        else {
-            our_type = "INTEGER";
-        }
-    }
-    else if(Number(value) == parseFloat(value)) {
-        our_type = "FLOAT";
-    }
-
-    // Check for too long if string
-    if ((dict['type'] == "VARCHAR") || (dict['type'] == "CHAR")){
-        if (value.length > dict['length']){
-            return "warn";
-        }
-    }
-    // Check it if integer
-    else if (dict['type'] == "INTEGER"){
-        if (our_type != "INTEGER"){
-            return "warn";
-        }
-    }
-    // Check if float
-    else if (dict['type'] == "FLOAT"){
-        if ((our_type != "FLOAT") && (our_type != "INTEGER")){
-            return "warn";
-        }
-    // Check if date
-    } else if (dict['type'] == "DATETIME year to day"){
-        var pattern = new RegExp("^[0-9]{4}-[0-9]{2}-[0-9]{2}$");
-        if (pattern.test(value) != true){
-            return "warn";
-        }
-        // We passed the regex, but is the month and day valid?
-        var chunks = value.split('-');
-        var d = new Date(chunks[0], chunks[1] - 1, chunks[2]);
-        if (!( d && (d.getMonth() + 1) == chunks[1] && d.getDate() == Number(chunks[2]))){
-            return "warn";
-        };
-    } else {
-        // We don't know the type so we can't validate
-        return "";
-    }
-
-    // It appears valid
-    return "";
-}
-
-function getTitle(tag, loop){
-    if (tags[tag] == null){
-        return "Tag not present in dictionary.";
-    } else {
-        if (loop != null){
-            return tag + ": " + tags[tag]['description'];
-        } else {
-            return tags[tag]['description'];
-        }
-    }
-}
-
-function getType(tag){
-    if (tags[tag] == null){
-        return "Tag not present in dictionary.";
-    } else {
-        var not_null = "";
-        if (!tags[tag]['null_valid']){
-            not_null = " NOT NULL.";
-        }
-
-        if (tags[tag]['length'] != null){
-            return tags[tag]['type'] + " with length " + tags[tag]['length'] + not_null;
-        } else {
-            return tags[tag]['type'] + not_null;
-        }
-    }
-}
-
-// Validate a tag and update it's classes
-function updateTag(tag, value){
-    document.getElementById(tag).className = "line " + validateTag(tag, value);
-}
-
-// Validate a loop datum and update its tags
-function updateDatum(tag, id, value){
-    document.getElementById(id).className = "editable " + validateTag(tag, value);
-}
-
-// DOM creation methods
-function createEditableSpan(content, link_to){
-    var content = content.replace(/\n/g, "⏎");
-    var span = $("<span></span>").addClass("editable").html(content).attr('contentEditable', true)
-    if (link_to != null){ span.attr("onblur", "this.innerHTML = this.innerHTML.replace(/<br>/g,'⏎'); " + link_to + " = this.innerHTML;"); }
-    return span;
-}
-
-function createUneditableSpan(content){
-    return $("<span></span>").addClass("uneditable").html(content);
-}
-
-function createLineDiv(){
-    return $("<div></div>").addClass("line highlight");
-}
-
-// Create a loop tag
-function createLoopColumn(name){
-    var tag_div = createLineDiv().attr("id", name).addClass("looptag");
-    var tag_name = createUneditableSpan(name).addClass("twoindent").prop("title", getTitle(name));
-    tag_div.append(tag_name);
-    return tag_div;
-}
-
-function toggleButtonHandler(img_button, id){
-    if (img_button.src.indexOf("images/minimize.png") != -1){
-        img_button.src = "images/maximize.png";
-        $("#"+id).hide();
-        $("#"+id+"_name").css("display", "inline-block");
-    } else {
-        img_button.src = "images/minimize.png";
-        $("#"+id).show();
-        $("#"+id+"_name").hide();
-    }
-}
+/*
+ *
+ * Class definitions
+ *
+ */
 
 /* NMR-STAR */
 
@@ -193,6 +36,33 @@ var NMRSTAR = function (name) {
     this.saveframes = [];
 };
 
+// Adds a new saveframe to an NMR-STAR entry
+NMRSTAR.prototype.addSaveframe = function(saveframe){
+    this.saveframes.push(saveframe);
+}
+
+// Downloads the NMR-STAR file
+NMRSTAR.prototype.download = function(){
+    try {
+        download(this.dataname + "_3.str" , this.print());
+    } catch (err){
+        alert("Could not create NMR-STAR text file! Errors encountered: " + err);
+    }
+
+}
+
+// Method to convert the NMR-STAR object to text representation
+NMRSTAR.prototype.print = function() {
+    var result =  "data_" + this.dataname + "\n\n";
+
+    this.saveframes.forEach(function(saveframe) {
+        result += saveframe.print() + "\n";
+    });
+
+    return result;
+};
+
+// Creates a HTML DOM representation of an entry
 NMRSTAR.prototype.toHTML = function() {
     // Clear all existing timouts (if a previous entry was still generating)
     for (var i=0; i<timeouts.length; i++) {
@@ -214,29 +84,6 @@ NMRSTAR.prototype.toHTML = function() {
     return root;
 }
 
-NMRSTAR.prototype.print = function() {
-    var result =  "data_" + this.dataname + "\n\n";
-
-    this.saveframes.forEach(function(saveframe) {
-        result += saveframe.print() + "\n";
-    });
-
-    return result;
-};
-
-NMRSTAR.prototype.addSaveframe = function(saveframe){
-    this.saveframes.push(saveframe);
-}
-
-NMRSTAR.prototype.download = function(){
-    try {
-        download(this.dataname + "_3.str" , this.print());
-    } catch (err){
-        alert("Could not create NMR-STAR text file! Errors encountered: " + err);
-    }
-
-}
-
 // Saveframe definition
 var SAVEFRAME = function (name, ordinal) {
     this.name = name;
@@ -247,24 +94,64 @@ var SAVEFRAME = function (name, ordinal) {
     this.loops = [];
 };
 
-function insertUnicodeNewline(element){
-    var el = element[0];
-    var position = getCaretCharacterOffsetWithin(el);
-    var newtext = element.html().substring(0,position) + "⏎" + element.html().substring(position);
-    element.html(newtext);
-
-    // Set the cursor position?
-    el.focus();
-    var range = document.createRange();
-    var sel = window.getSelection();
-    range.setStart(el.childNodes[0], position + 1);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-
-    return false;
+// Add a loop to a saveframe
+SAVEFRAME.prototype.addLoop = function(loop){
+    this.loops.push(loop);
 }
 
+// Add a tag to a saveframe
+SAVEFRAME.prototype.addTag = function(tag, value){
+    // Only set the tag prefix for the first tag we see
+    if (this.tag_prefix == ""){
+        this.tag_prefix = tag.substring(0, tag.indexOf("."));
+    } else if (this.tag_prefix != tag.substring(0, tag.indexOf("."))){
+        throw "Illegal tag in saveframe '" + this.name + "' with different tag prefix than first tag: " + tag;
+    }
+
+    var tag_name = tag.substring(tag.indexOf(".")+1);
+    if (tag_name == "Sf_category"){
+        this.category = value;
+    }
+    this.tags.push([tag_name, value]);
+}
+
+// Create a textual representation of a saveframe
+SAVEFRAME.prototype.print = function() {
+
+    var width = 0;
+
+    this.tags.forEach(function(tag) {
+        if (tag[0].length > width){
+            width = tag[0].length;
+        }
+    });
+    width += this.tag_prefix.length + 2;
+
+    // Print the saveframe
+    var ret_string = sprintf("save_%s\n", this.name);
+    var pstring = sprintf("   %%-%ds  %%s\n", width);
+    var mstring = sprintf("   %%-%ds\n;\n%%s;\n", width);
+
+    var tag_prefix = this.tag_prefix;
+
+    this.tags.forEach(function(tag){
+        var cleaned_tag = cleanValue(tag[1]);
+
+        if (cleaned_tag.indexOf("\n") == -1){
+            ret_string +=  sprintf(pstring, tag_prefix + "." + tag[0], cleaned_tag)
+        } else {
+            ret_string +=  sprintf(mstring, tag_prefix + "." + tag[0], cleaned_tag)
+        }
+    });
+
+    this.loops.forEach(function(loop) {
+        ret_string += loop.print();
+    });
+
+    return ret_string + "save_\n";
+};
+
+// Creates a HTML DOM representation of a saveframe
 SAVEFRAME.prototype.toHTML = function(attach_to){
 
     var outer_saveframe_div = $("<div><div>");
@@ -356,60 +243,6 @@ SAVEFRAME.prototype.toHTML = function(attach_to){
     }
 }
 
-SAVEFRAME.prototype.print = function() {
-
-    var width = 0;
-
-    this.tags.forEach(function(tag) {
-        if (tag[0].length > width){
-            width = tag[0].length;
-        }
-    });
-    width += this.tag_prefix.length + 2;
-
-    // Print the saveframe
-    var ret_string = sprintf("save_%s\n", this.name);
-    var pstring = sprintf("   %%-%ds  %%s\n", width);
-    var mstring = sprintf("   %%-%ds\n;\n%%s;\n", width);
-
-    var tag_prefix = this.tag_prefix;
-
-    this.tags.forEach(function(tag){
-        var cleaned_tag = cleanValue(tag[1]);
-
-        if (cleaned_tag.indexOf("\n") == -1){
-            ret_string +=  sprintf(pstring, tag_prefix + "." + tag[0], cleaned_tag)
-        } else {
-            ret_string +=  sprintf(mstring, tag_prefix + "." + tag[0], cleaned_tag)
-        }
-    });
-
-    this.loops.forEach(function(loop) {
-        ret_string += loop.print();
-    });
-
-    return ret_string + "save_\n";
-};
-
-SAVEFRAME.prototype.addTag = function(tag, value){
-    // Only set the tag prefix for the first tag we see
-    if (this.tag_prefix == ""){
-        this.tag_prefix = tag.substring(0, tag.indexOf("."));
-    } else if (this.tag_prefix != tag.substring(0, tag.indexOf("."))){
-        throw "Illegal tag in saveframe '" + this.name + "' with different tag prefix than first tag: " + tag;
-    }
-
-    var tag_name = tag.substring(tag.indexOf(".")+1);
-    if (tag_name == "Sf_category"){
-        this.category = value;
-    }
-    this.tags.push([tag_name, value]);
-}
-
-SAVEFRAME.prototype.addLoop = function(loop){
-    this.loops.push(loop);
-}
-
 // Loop definition
 var LOOP = function (ordinal, saveframe_ordinal) {
     this.ordinal = ordinal;
@@ -419,77 +252,7 @@ var LOOP = function (ordinal, saveframe_ordinal) {
     this.category = null;
 };
 
-LOOP.prototype.toHTML = function(attach_to){
-
-    var loop_id = sprintf("saveframe_%d_loop_%d", this.saveframe_ordinal, this.ordinal);
-    var outer_loop_div = $("<div><div>");
-
-    // Create the shrink button
-    var shrink = $('<img name="minimize" src="images/minimize.png">');
-    shrink.attr('onclick', 'toggleButtonHandler(this, "' + loop_id + '");');
-
-    var loop_div = $("<div><div>").attr("id", loop_id);
-
-    var loop_row = createLineDiv().attr("title", this.category).addClass("oneindent");
-
-    loop_row.append(shrink, createUneditableSpan(" loop_"), createUneditableSpan(this.category.substring(1)).attr("id", loop_id + "_name").hide());
-    outer_loop_div.append(loop_row, loop_div);
-
-    // Add the loop columns
-    for (var l=0; l < this.columns.length; l++){
-        loop_div.append(createLoopColumn(this.category + '.' + this.columns[l]));
-    }
-
-    // With a table
-    var table = $("<table></table>").addClass("twoindent alternatingcolor").css("maxWidth", "95%");
-    for (var d=0; d < this.data.length; d++){
-        var the_row = $("<tr></tr>");
-
-        for (var n=0; n < this.data[d].length; n++){
-            var tag_name = this.category + "." + this.columns[n];
-            var our_id = "star.saveframes[" + this.saveframe_ordinal + "].loops[" + this.ordinal + "].data[" + d + "][" + n + "]";
-            var datum = createEditableSpan(this.data[d][n], our_id).addClass("highlight");
-            datum.addClass(validateTag(tag_name, this.data[d][n]));
-            datum.prop("title", getTitle(tag_name, true));
-            datum.attr("onblur", datum.attr("onblur") + " updateDatum('" + tag_name + "', '" + our_id + "', this.innerHTML);");
-            datum.attr("id", our_id).attr("tag", tag_name);
-
-            datum.keypress(function(evt) {
-                if(evt.which == 13) {
-                    return insertUnicodeNewline($(this));
-                }
-            });
-            if (!offline){
-                datum.focus(function(){
-                    $(this).autocomplete({
-                        source: "/dictionary/getenumerations.php?tag=" + $(this).attr("tag"),
-                        delay: 1000,
-                        minLength: 0
-                    });
-                });
-            }
-
-            var the_td = $("<td></td>");
-
-            if (this.data[d][n].startsWith("$")){
-                the_td.append($("<a>Jump to: </a>").attr("href", "#" + this.data[d][n].substring(1)));
-            }
-
-            the_td.append(datum);
-            the_row.append(the_td);
-        }
-        table.append(the_row);
-    }
-    loop_div.append(table);
-
-    loop_div.append(createLineDiv().append(createUneditableSpan("stop_")).addClass("oneindent"));
-    if (attach_to != null){
-        attach_to.append(outer_loop_div);
-    } else {
-        return outer_loop_div
-    }
-}
-
+// Adds a tag (a column descriptor) to a loop
 LOOP.prototype.addColumn = function(column_name){
     var column = column_name.substring(column_name.indexOf(".")+1)
     var category = column_name.substring(0,column_name.indexOf("."))
@@ -525,6 +288,7 @@ LOOP.prototype.addDatum = function(value){
     last_row.push(value);
 }
 
+// Create a textual representation of a loop
 LOOP.prototype.print = function() {
 
     // Check for empty loops
@@ -614,6 +378,96 @@ LOOP.prototype.print = function() {
     return ret_string
 };
 
+// Creates a HTML DOM representation of a loop
+LOOP.prototype.toHTML = function(attach_to){
+
+    var loop_id = sprintf("saveframe_%d_loop_%d", this.saveframe_ordinal, this.ordinal);
+    var outer_loop_div = $("<div><div>");
+
+    // Create the shrink button
+    var shrink = $('<img name="minimize" src="images/minimize.png">');
+    shrink.attr('onclick', 'toggleButtonHandler(this, "' + loop_id + '");');
+
+    var loop_div = $("<div><div>").attr("id", loop_id);
+
+    var loop_row = createLineDiv().attr("title", this.category).addClass("oneindent");
+
+    loop_row.append(shrink, createUneditableSpan(" loop_"), createUneditableSpan(this.category.substring(1)).attr("id", loop_id + "_name").hide());
+    outer_loop_div.append(loop_row, loop_div);
+
+    // Add the loop columns
+    for (var l=0; l < this.columns.length; l++){
+        loop_div.append(createLoopColumn(this.category + '.' + this.columns[l]));
+    }
+
+    // With a table
+    var table = $("<table></table>").addClass("twoindent alternatingcolor").css("maxWidth", "95%");
+    for (var d=0; d < this.data.length; d++){
+        var the_row = $("<tr></tr>");
+
+        for (var n=0; n < this.data[d].length; n++){
+            var tag_name = this.category + "." + this.columns[n];
+            var our_id = "star.saveframes[" + this.saveframe_ordinal + "].loops[" + this.ordinal + "].data[" + d + "][" + n + "]";
+            var datum = createEditableSpan(this.data[d][n], our_id).addClass("highlight");
+            datum.addClass(validateTag(tag_name, this.data[d][n]));
+            datum.prop("title", getTitle(tag_name, true));
+            datum.attr("onblur", datum.attr("onblur") + " updateDatum('" + tag_name + "', '" + our_id + "', this.innerHTML);");
+            datum.attr("id", our_id).attr("tag", tag_name);
+
+            datum.keypress(function(evt) {
+                if(evt.which == 13) {
+                    return insertUnicodeNewline($(this));
+                }
+            });
+            if (!offline){
+                datum.focus(function(){
+                    $(this).autocomplete({
+                        source: "/dictionary/getenumerations.php?tag=" + $(this).attr("tag"),
+                        delay: 1000,
+                        minLength: 0
+                    });
+                });
+            }
+
+            var the_td = $("<td></td>");
+
+            if (this.data[d][n].startsWith("$")){
+                the_td.append($("<a>Jump to: </a>").attr("href", "#" + this.data[d][n].substring(1)));
+            }
+
+            the_td.append(datum);
+            the_row.append(the_td);
+        }
+        table.append(the_row);
+    }
+    loop_div.append(table);
+
+    loop_div.append(createLineDiv().append(createUneditableSpan("stop_")).addClass("oneindent"));
+    if (attach_to != null){
+        attach_to.append(outer_loop_div);
+    } else {
+        return outer_loop_div
+    }
+}
+
+
+// Replace all function for strings
+String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.replace(new RegExp(search, 'g'), replacement);
+};
+
+/*
+ *
+ * DOM creation and editor functions
+ *
+ */
+
+// Function to check for illegal unicode characters in the file
+function containsIllegalNonLatinCodepoints(s) {
+    return /[^\u0000-\u00ff]/.test(s.replace(/⏎/g, "\n"));
+}
+
 /* Automatically quotes the value in the appropriate way. Don't quote
    values you send to this method or they will show up in another set
    of quotes as part of the actual data. E.g.:
@@ -672,17 +526,233 @@ function cleanValue(value) {
     return value
 }
 
+// Creates an editable span
+function createEditableSpan(content, link_to){
+    var content = content.replace(/\n/g, "⏎");
+    var span = $("<span></span>").addClass("editable").html(content).attr('contentEditable', true)
+    if (link_to != null){ span.attr("onblur", "this.innerHTML = this.innerHTML.replace(/<br>/g,'⏎'); " + link_to + " = this.innerHTML;"); }
+    return span;
+}
 
+// Creates a new "line" div element
+function createLineDiv(){
+    return $("<div></div>").addClass("line highlight");
+}
+
+// Create a loop tag
+function createLoopColumn(name){
+    var tag_div = createLineDiv().attr("id", name).addClass("looptag");
+    var tag_name = createUneditableSpan(name).addClass("twoindent").prop("title", getTitle(name));
+    tag_div.append(tag_name);
+    return tag_div;
+}
+
+// Creates a new uneditable span
+function createUneditableSpan(content){
+    return $("<span></span>").addClass("uneditable").html(content);
+}
+
+// Called when the user attempts to add a newline; replaces it with the unicode
+//  newline symbol that we use instead: ⏎
+function insertUnicodeNewline(element){
+    var el = element[0];
+    var position = getCaretCharacterOffsetWithin(el);
+    var newtext = element.html().substring(0,position) + "⏎" + element.html().substring(position);
+    element.html(newtext);
+
+    // Set the cursor position?
+    el.focus();
+    var range = document.createRange();
+    var sel = window.getSelection();
+    range.setStart(el.childNodes[0], position + 1);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    return false;
+}
+
+// Used to insert newline symbol rather than newline
+function getCaretCharacterOffsetWithin(element) {
+    var caretOffset = 0;
+    var doc = element.ownerDocument || element.document;
+    var win = doc.defaultView || doc.parentWindow;
+    var sel;
+    if (typeof win.getSelection != "undefined") {
+        sel = win.getSelection();
+        if (sel.rangeCount > 0) {
+            var range = win.getSelection().getRangeAt(0);
+            var preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(element);
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+            caretOffset = preCaretRange.toString().length;
+        }
+    } else if ( (sel = doc.selection) && sel.type != "Control") {
+        var textRange = sel.createRange();
+        var preCaretTextRange = doc.body.createTextRange();
+        preCaretTextRange.moveToElementText(element);
+        preCaretTextRange.setEndPoint("EndToEnd", textRange);
+        caretOffset = preCaretTextRange.text.length;
+    }
+    return caretOffset;
+}
+
+// Returns the description for a tag
+function getTitle(tag, loop){
+    if (tags[tag] == null){
+        return "Tag not present in dictionary.";
+    } else {
+        if (loop != null){
+            return tag + ": " + tags[tag]['description'];
+        } else {
+            return tags[tag]['description'];
+        }
+    }
+}
+
+// Returns what data type a given tag should be
+function getType(tag){
+    if (tags[tag] == null){
+        return "Tag not present in dictionary.";
+    } else {
+        var not_null = "";
+        if (!tags[tag]['null_valid']){
+            not_null = " NOT NULL.";
+        }
+
+        if (tags[tag]['length'] != null){
+            return tags[tag]['type'] + " with length " + tags[tag]['length'] + not_null;
+        } else {
+            return tags[tag]['type'] + not_null;
+        }
+    }
+}
+
+// Validate a tag and update it's classes
+function updateTag(tag, value){
+    document.getElementById(tag).className = "line " + validateTag(tag, value);
+}
+
+// Validate a loop datum and update its tags
+function updateDatum(tag, id, value){
+    document.getElementById(id).className = "editable " + validateTag(tag, value);
+}
+
+function validateTag(tag, value){
+
+    // Always make sure it doesn't have unicode
+    if (containsIllegalNonLatinCodepoints(value)){
+        return "containsunicode";
+    }
+
+    // If we aren't validating, don't do anything
+    if (dont_validate){
+        return "";
+    }
+
+    // If the tag isn't in the dict it is invalid
+    if (tags[tag] == null){
+        return "nodict";
+    }
+
+    // Get the tag dict
+    var dict = tags[tag];
+
+    // Null tag is not allowed
+    if (((value == null) || ( value == "") || ( value == ".") || ( value == "?"))
+            && (dict["null_valid"] == false)){
+        return "illegalnull";
+    }
+    // Null is valid, so don't check the type if the type is null
+    else {
+        if ((value == ".") || (value == "?")){
+            return "valid";
+        }
+    }
+
+    var our_type = null;
+    // Check the data type
+    if(Number(value) == parseInt(value)) {
+        // This prevents 27.000 from being interpreted as an INT
+        if (value.indexOf(".") != -1){
+            our_type = "FLOAT";
+        }
+        else {
+            our_type = "INTEGER";
+        }
+    }
+    else if(Number(value) == parseFloat(value)) {
+        our_type = "FLOAT";
+    }
+
+    // Check for too long if string
+    if ((dict['type'] == "VARCHAR") || (dict['type'] == "CHAR")){
+        if (value.length > dict['length']){
+            return "warn";
+        }
+    }
+    // Check it if integer
+    else if (dict['type'] == "INTEGER"){
+        if (our_type != "INTEGER"){
+            return "warn";
+        }
+    }
+    // Check if float
+    else if (dict['type'] == "FLOAT"){
+        if ((our_type != "FLOAT") && (our_type != "INTEGER")){
+            return "warn";
+        }
+    // Check if date
+    } else if (dict['type'] == "DATETIME year to day"){
+        var pattern = new RegExp("^[0-9]{4}-[0-9]{2}-[0-9]{2}$");
+        if (pattern.test(value) != true){
+            return "warn";
+        }
+        // We passed the regex, but is the month and day valid?
+        var chunks = value.split('-');
+        var d = new Date(chunks[0], chunks[1] - 1, chunks[2]);
+        if (!( d && (d.getMonth() + 1) == chunks[1] && d.getDate() == Number(chunks[2]))){
+            return "warn";
+        };
+    } else {
+        // We don't know the type so we can't validate
+        return "";
+    }
+
+    // It appears valid
+    return "";
+}
+
+// Toggle between the expand and minimize button and show or hide the
+//  linked loop or saveframe
+function toggleButtonHandler(img_button, id){
+    if (img_button.src.indexOf("images/minimize.png") != -1){
+        img_button.src = "images/maximize.png";
+        $("#"+id).hide();
+        $("#"+id+"_name").css("display", "inline-block");
+    } else {
+        img_button.src = "images/minimize.png";
+        $("#"+id).show();
+        $("#"+id+"_name").hide();
+    }
+}
 
 /*
  *
  *
- *  Parser methods
+ *  Parser functions
  *
  *
  */
 
-var whitespace = " \t\n";
+// See if a token is a reserved token that shouldn't be found in a data spot
+function checkReservedToken(to_check){
+    if ((to_check.startsWith("_")) || (to_check.startsWith("save_")) || (to_check == "loop_") || (to_check == "stop_") || (to_check.startsWith("data_"))){
+        return true;
+    }
+    return false;
+}
+
 function chompWhitespace(item){
     var pos = 0;
 
@@ -821,20 +891,6 @@ function starCatcher(star){
     }
 }
 
-// Replace all function
-String.prototype.replaceAll = function(search, replacement) {
-    var target = this;
-    return target.replace(new RegExp(search, 'g'), replacement);
-};
-
-// See if a token is a reserved token that shouldn't be found in a data spot
-function checkReservedToken(to_check){
-    if ((to_check.startsWith("_")) || (to_check.startsWith("save_")) || (to_check == "loop_") || (to_check == "stop_") || (to_check.startsWith("data_"))){
-        return true;
-    }
-    return false;
-}
-
 // Parse a STAR file - return NMRSTAR object
 function parseSTAR(star){
 
@@ -955,6 +1011,12 @@ function parseSTAR(star){
     return mystar;
 }
 
+/*
+ *
+ * Web page functions
+ *
+ */
+
 function openFile() {
     var input = document.getElementById("nmrstar_file");
 
@@ -1018,29 +1080,4 @@ function download(filename, text) {
 
 function getURLParameter(name) {
   return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null
-}
-
-// Used to insert newline symbol rather than newline
-function getCaretCharacterOffsetWithin(element) {
-    var caretOffset = 0;
-    var doc = element.ownerDocument || element.document;
-    var win = doc.defaultView || doc.parentWindow;
-    var sel;
-    if (typeof win.getSelection != "undefined") {
-        sel = win.getSelection();
-        if (sel.rangeCount > 0) {
-            var range = win.getSelection().getRangeAt(0);
-            var preCaretRange = range.cloneRange();
-            preCaretRange.selectNodeContents(element);
-            preCaretRange.setEnd(range.endContainer, range.endOffset);
-            caretOffset = preCaretRange.toString().length;
-        }
-    } else if ( (sel = doc.selection) && sel.type != "Control") {
-        var textRange = sel.createRange();
-        var preCaretTextRange = doc.body.createTextRange();
-        preCaretTextRange.moveToElementText(element);
-        preCaretTextRange.setEndPoint("EndToEnd", textRange);
-        caretOffset = preCaretTextRange.text.length;
-    }
-    return caretOffset;
 }

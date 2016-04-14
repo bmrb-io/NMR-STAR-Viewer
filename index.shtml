@@ -1,14 +1,16 @@
 <!--#include virtual="/includes/header0.shtml" -->
-
 <!-- to display the "last modified" date of the right file in the footer -->
 <!--#set var="LASTMOD" value="$LAST_MODIFIED" -->
+
+<!-- The includes in this page make it display the standard BMRB
+     header, navigation bar, and footer if the page is served from the BMRB.
+     If you load the page locally you will just see the file selection form. -->
 
 <title>NMR-STAR file visualization tool</title>
 <script src="javascript/starlib.js" charset="utf-8"></script>
 <script src="javascript/schema.js"></script>
 <script src="javascript/sprintf.js"></script>
 <link rel="stylesheet" type="text/css" href="css/style.css">
-
 <!--#include virtual="/includes/header1.shtml" -->
 
 <div class="contentWrap">
@@ -25,25 +27,28 @@
 
 <script>
 
-debug = getURLParameter("debug");
-if (debug == null){
-    debug = "";
-}
-
-function checkEntryLoad(){
-    the_entry = getURLParameter("entry");
-    if (the_entry != null){
-        $("#parser_messages").html("Loading entry " + the_entry + "...");
-        openURL("/ftp/pub/bmrb/entry_directories/bmr" + the_entry + "/bmr" + the_entry + "_3.str");
-        $("#parser_messages").html("");
+    // Optionally enable debug output
+    debug = getURLParameter("debug");
+    if (debug == null){
+        debug = "";
     }
-}
 
-// Detect if we are offline or online
-if (!offline) {
-    // See if we need to load an entry if we are online
-    $( window ).load( checkEntryLoad );
-}
+    // If an entry is specified in the URL try to load it
+    function checkEntryLoad(){
+        the_entry = getURLParameter("entry");
+        if (the_entry != null){
+            $("#parser_messages").html("Loading entry " + the_entry + "...");
+            openURL("/ftp/pub/bmrb/entry_directories/bmr" + the_entry + "/bmr" + the_entry + "_3.str");
+            $("#parser_messages").html("");
+        }
+    }
+
+    // Detect if we are offline or online
+    if (!offline) {
+        // See if we need to load an entry if we are online
+        $( window ).load( checkEntryLoad );
+    }
 
 </script>
+
 <!--#include virtual="/includes/footer.shtml" -->
