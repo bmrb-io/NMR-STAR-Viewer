@@ -36,6 +36,32 @@ var NMRSTAR = function (name) {
     this.saveframes = [];
 };
 
+// Create a STAR from JSON
+NMRSTAR.prototype.fromJSON = function(jdata){
+
+    console.log(jdata);
+
+    this.dataname = jdata['bmrb_id'];
+    this.saveframes = [];
+    for (var i=0; i<jdata['saveframes'].length; i++){
+        var new_frame = new SAVEFRAME(jdata['saveframes'][i]['name'], i);
+        new_frame.tag_prefix = jdata['saveframes'][i]['tag_prefix'];
+        new_frame.tags = jdata['saveframes'][i]['tags'];
+        new_frame.category = "TODO";
+        new_frame.ordinal = i;
+        new_frame.loops = [];
+        for (var n=0; n<jdata['saveframes'][i]['loops'].length; n++){
+            var new_loop = new LOOP(n, i);
+            new_loop.columns = jdata['saveframes'][i]['loops'][n]['tags'];
+            new_loop.data = jdata['saveframes'][i]['loops'][n]['data'];
+            new_loop.category = jdata['saveframes'][i]['loops'][n]['category'];
+            new_frame.loops.push(new_loop);
+        }
+        this.saveframes.push(new_frame);
+    }
+    console.log(this);
+}
+
 // Adds a new saveframe to an NMR-STAR entry
 NMRSTAR.prototype.addSaveframe = function(saveframe){
     this.saveframes.push(saveframe);
@@ -1043,19 +1069,29 @@ function openFile() {
     reader.readAsText(input.files[0]);
 };
 
-function openURL(url){
-    $.ajax( {
-        url: url,
-        success: function( url_data ) {
+var test;
 
-            if (debug != null){
-                var t0 = performance.now();
-                star = starCatcher(url_data);
-                var t1 = performance.now();
-                console.log("Call to starCatcher took " + (t1 - t0) + " milliseconds.");
-            } else {
-                star = starCatcher(url_data);
+function loadEntryFromAPI(entry_id){
+    $.ajax( {
+        url: "http://webapi.bmrb.wisc.edu/current/rest/entry/" + entry_id + "/",
+        success: function( url_data ){
+
+            // See if the API has an error condition
+            if (url_data['error'] != undefined){
+                $("#parser_messages").html("<font color='red'>" + url_data['error'] + "</font>");
+                return;
             }
+
+            // Create the STAR entry and then fill it with data
+            star = new NMRSTAR('tmp_name');
+            star.fromJSON(url_data[entry_id]);
+
+            /*
+            // Time profiling example
+            var t0 = performance.now();
+            var t1 = performance.now();
+            console.log("Call to loadJSON took " + (t1 - t0) + " milliseconds.");
+            */
 
             if (star != null){
                 if (debug.indexOf("noload") == -1){

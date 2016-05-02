@@ -38,7 +38,8 @@
         the_entry = getURLParameter("entry");
         if (the_entry != null){
             $("#parser_messages").html("Loading entry " + the_entry + "...");
-            openURL("/ftp/pub/bmrb/entry_directories/bmr" + the_entry + "/bmr" + the_entry + "_3.str");
+            //openURL("/ftp/pub/bmrb/entry_directories/bmr" + the_entry + "/bmr" + the_entry + "_3.str");
+            loadEntryFromAPI(the_entry);
             $("#parser_messages").html("");
         }
     }
