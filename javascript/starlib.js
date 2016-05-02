@@ -39,15 +39,13 @@ var NMRSTAR = function (name) {
 // Create a STAR from JSON
 NMRSTAR.prototype.fromJSON = function(jdata){
 
-    console.log(jdata);
-
     this.dataname = jdata['bmrb_id'];
     this.saveframes = [];
     for (var i=0; i<jdata['saveframes'].length; i++){
         var new_frame = new SAVEFRAME(jdata['saveframes'][i]['name'], i);
         new_frame.tag_prefix = jdata['saveframes'][i]['tag_prefix'];
         new_frame.tags = jdata['saveframes'][i]['tags'];
-        new_frame.category = "TODO";
+        this.category = jdata['saveframes'][i]['category'];
         new_frame.ordinal = i;
         new_frame.loops = [];
         for (var n=0; n<jdata['saveframes'][i]['loops'].length; n++){
@@ -59,7 +57,6 @@ NMRSTAR.prototype.fromJSON = function(jdata){
         }
         this.saveframes.push(new_frame);
     }
-    console.log(this);
 }
 
 // Adds a new saveframe to an NMR-STAR entry
@@ -1073,7 +1070,7 @@ var test;
 
 function loadEntryFromAPI(entry_id){
     $.ajax( {
-        url: "http://webapi.bmrb.wisc.edu/current/rest/entry/" + entry_id + "/",
+        url: "//webapi.bmrb.wisc.edu/current/rest/entry/" + entry_id + "/",
         success: function( url_data ){
 
             // See if the API has an error condition
