@@ -20,7 +20,7 @@ file from the browser and saving it as a file.
 * Saveframes and loops are collapsible.
 * When editing tag values enumerations from the BMRB are fetched and suggested.
 (This feature does not work in offline mode and requires you to use the BMRB
-hosted STAR viewer located [here](http://www.bmrb.wisc.edu/dictionary/starviewer/)).
+hosted STAR viewer located [here](http://www.bmrb.wisc.edu/dictionary/starviewer/).)
 * Loop data is colored to enhance viewability.
 * Saveframe references display a link allowing you to go directly to the
 saveframe. You can also link to individual saveframes by adding #saveframe_name
