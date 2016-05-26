@@ -104,6 +104,15 @@ NMRSTAR.prototype.toHTML = function() {
         timeouts.push(setTimeout(this.saveframes[s].toHTML.bind(this.saveframes[s], root), s*100));
     }
 
+    // This ensures that if a location hash was provided that we try to scroll
+    //  to it - but only once everything is loaded...
+    timeouts.push(setTimeout(function(){
+        var hash = location.hash.substring(1);
+        if (document.getElementById(hash) !== null){
+            document.getElementById(hash).scrollIntoView(true);
+        }
+    }, star.saveframes.length*100+100));
+
     return root;
 }
 
@@ -255,12 +264,6 @@ SAVEFRAME.prototype.toHTML = function(attach_to){
     // For asynchronous additions
     if (attach_to != null){
         attach_to.append(outer_saveframe_div);
-
-        // If our ID is the hash, scroll to this saveframe
-        if (location.hash.substring(1) == this.name){
-            document.getElementById(this.name).scrollIntoView(true);
-        }
-
     } else {
         return outer_saveframe_div;
     }
@@ -405,14 +408,14 @@ LOOP.prototype.print = function() {
 LOOP.prototype.toHTML = function(attach_to){
 
     var loop_id = sprintf("saveframe_%d_loop_%d", this.saveframe_ordinal, this.ordinal);
-    var outer_loop_div = $("<div><div>");
+    var loop_unique = star.saveframes[this.saveframe_ordinal].name + "." + this.category;
+    var outer_loop_div = $("<div><div>").attr("id", loop_unique);
 
     // Create the shrink button
     var shrink = $('<img name="minimize" src="images/minimize.png">');
     shrink.attr('onclick', 'toggleButtonHandler(this, "' + loop_id + '");');
 
     var loop_div = $("<div><div>").attr("id", loop_id);
-
     var loop_row = createLineDiv().attr("title", this.category).addClass("oneindent");
 
     loop_row.append(shrink, createUneditableSpan(" loop_"), createUneditableSpan(this.category.substring(1)).attr("id", loop_id + "_name").hide());
