@@ -22,7 +22,7 @@ else:
     call(["svn","update"], stdout=open("/dev/null","w"))
     os.chdir("..")
 
-csvfile = open('nmr-star-dictionary/bmrb_star_v3_files/adit_input/xlschem_ann.csv', 'rbU')
+csvfile = open('nmr-star-dictionary/bmrb_only_files/adit_input/xlschem_ann.csv', 'rbU')
 jsonfile = open(os.path.join(this_dir, "../javascript/schema.js"), 'w')
 
 dictionary = {}
