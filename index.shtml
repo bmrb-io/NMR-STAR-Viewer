@@ -23,6 +23,7 @@
             <div id="dynamic_anchor"></div>
         </div>
     </form>
+    <noscript><h2>This page requires JavaScript. Please enable JavaScript to use the NMR-STAR visualizer.</h2></noscript>
 </div>
 
 <script>
