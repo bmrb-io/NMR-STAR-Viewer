@@ -17,6 +17,7 @@ anywhere; they are processed locally in your browser.)
 * Support for editing tag and loop values and then "downloading" the resulting
 file from the browser and saving it as a file.
 * Tag descriptions and tag value data types are displayed on mouse hover.
+* Tags in saveframes and loops that have null values can be hidden
 * Saveframes and loops are collapsible.
 * When editing tag values enumerations from the BMRB are fetched and suggested.
 (This feature does not work in offline mode and requires you to use the BMRB

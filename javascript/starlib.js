@@ -3,6 +3,7 @@
 var skip_empty_loops = false;
 var dont_validate = false;
 var debug = false;
+var show_hidden_tags = false;
 
 // Don't change these yourself
 var star;
@@ -244,6 +245,11 @@ SAVEFRAME.prototype.toHTML = function(attach_to){
         value_td.append(value_span);
 
         table_row.append(tag_td, value_td);
+        // Keep track of empty tags
+        if (value == "."){
+            table_row.addClass("empty");
+            if (!show_hidden_tags){table_row.hide();}
+        }
         tag_table.append(table_row);
     }
     saveframe_div.append(tag_table);
@@ -274,6 +280,7 @@ var LOOP = function (ordinal, saveframe_ordinal) {
     this.ordinal = ordinal;
     this.saveframe_ordinal = saveframe_ordinal;
     this.columns = [];
+    this.data_in_column = [];
     this.data = [];
     this.category = null;
 };
@@ -288,6 +295,22 @@ LOOP.prototype.addColumn = function(column_name){
     this.category = category;
     if (this.columns.indexOf(column) == -1){
         this.columns.push(column);
+    }
+}
+
+LOOP.prototype.checkNull = function(){
+
+    // Go through the columns
+    for (var x=0; x < this.columns.length; x++){
+        this.data_in_column[x] = false;
+
+        // Check the data for a given column
+        for (var n=0; n < this.data.length; n++){
+            if (this.data[n][x] != "."){
+                this.data_in_column[x] = true;
+                break;
+            }
+        }
     }
 }
 
@@ -407,6 +430,8 @@ LOOP.prototype.print = function() {
 // Creates a HTML DOM representation of a loop
 LOOP.prototype.toHTML = function(attach_to){
 
+    this.checkNull();
+
     var loop_id = sprintf("saveframe_%d_loop_%d", this.saveframe_ordinal, this.ordinal);
     var loop_unique = star.saveframes[this.saveframe_ordinal].name + "." + this.category;
     var outer_loop_div = $("<div><div>").attr("id", loop_unique);
@@ -423,7 +448,13 @@ LOOP.prototype.toHTML = function(attach_to){
 
     // Add the loop columns
     for (var l=0; l < this.columns.length; l++){
-        loop_div.append(createLoopColumn(this.category + '.' + this.columns[l]));
+        lc = createLoopColumn(this.category + '.' + this.columns[l]);
+        // Hide columns with no data by default
+        if (this.data_in_column[l] == false){
+            lc.addClass("empty");
+            if (!show_hidden_tags){lc.hide();}
+        }
+        loop_div.append(lc);
     }
 
     // With a table
@@ -439,6 +470,11 @@ LOOP.prototype.toHTML = function(attach_to){
             datum.prop("title", getTitle(tag_name, true));
             datum.attr("onblur", datum.attr("onblur") + " updateDatum('" + tag_name + "', '" + our_id + "', this.innerHTML);");
             datum.attr("id", our_id).attr("tag", tag_name);
+
+            if (this.data_in_column[n] == false){
+                datum.addClass("empty");
+                if (!show_hidden_tags){datum.hide();}
+            }
 
             datum.keypress(function(evt) {
                 if(evt.which == 13) {
@@ -1069,8 +1105,6 @@ function openFile() {
     reader.readAsText(input.files[0]);
 };
 
-var test;
-
 function loadEntryFromAPI(entry_id){
     $.ajax( {
         url: "//webapi.bmrb.wisc.edu/current/rest/entry/" + entry_id + "/",
@@ -1102,6 +1136,19 @@ function loadEntryFromAPI(entry_id){
     }).error(function (){
         $("#parser_messages").html("<font color='red'>No such entry.</font>");
     });
+}
+
+// Update the hidden tags and show/hide button
+function toggle_hidden_tags(){
+    if (show_hidden_tags){
+        show_hidden_tags = false;
+        $(".empty").hide();
+        $("#toggle_hidden").val("Show tags without values")
+    } else {
+        show_hidden_tags = true;
+        $(".empty").show();
+        $("#toggle_hidden").val("Hide tags without values")
+    }
 }
 
 function download(filename, text) {
