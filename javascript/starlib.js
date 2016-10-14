@@ -223,7 +223,7 @@ SAVEFRAME.prototype.toHTML = function(attach_to){
         if (!offline){
             value_span.focus(function(){
                 $(this).autocomplete({
-                    source: "//webapi-master.bmrb.wisc.edu/v1/rest/enumerations/".concat($(this).attr("tag")),
+                    source: "//webapi.bmrb.wisc.edu/v1/rest/enumerations/".concat($(this).attr("tag")),
                     delay: 100,
                     minLength: 0
                 });
@@ -448,7 +448,7 @@ LOOP.prototype.toHTML = function(attach_to){
             if (!offline){
                 datum.focus(function(){
                     $(this).autocomplete({
-                        source: "//webapi-master.bmrb.wisc.edu/v1/rest/enumerations/".concat($(this).attr("tag")),
+                        source: "//webapi.bmrb.wisc.edu/v1/rest/enumerations/".concat($(this).attr("tag")),
                         delay: 100,
                         minLength: 0
                     });
