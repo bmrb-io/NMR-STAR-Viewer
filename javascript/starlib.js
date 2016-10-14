@@ -16,7 +16,7 @@ var whitespace = " \t\n";
 if (typeof jQuery == 'undefined') {
     document.write('<script type="text/javascript" src="javascript/jquery.min.js"></script>');
 
-    // Keep track of whether we are imbedded in the BMRB page or not
+    // Keep track of whether we are embedded in the BMRB page or not
     offline = true;
 } else {
     offline = false;
@@ -223,7 +223,7 @@ SAVEFRAME.prototype.toHTML = function(attach_to){
         if (!offline){
             value_span.focus(function(){
                 $(this).autocomplete({
-                    source: "php/getenumerations.php?tag=".concat($(this).attr("tag")),
+                    source: "//webapi-master.bmrb.wisc.edu/v1/rest/enumerations/".concat($(this).attr("tag")),
                     delay: 100,
                     minLength: 0
                 });
@@ -448,8 +448,8 @@ LOOP.prototype.toHTML = function(attach_to){
             if (!offline){
                 datum.focus(function(){
                     $(this).autocomplete({
-                        source: "/dictionary/getenumerations.php?tag=" + $(this).attr("tag"),
-                        delay: 1000,
+                        source: "//webapi-master.bmrb.wisc.edu/v1/rest/enumerations/".concat($(this).attr("tag")),
+                        delay: 100,
                         minLength: 0
                     });
                 });
