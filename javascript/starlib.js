@@ -1107,7 +1107,7 @@ function openFile() {
 
 function loadEntryFromAPI(entry_id){
     $.ajax( {
-        url: "//webapi.bmrb.wisc.edu/v2/rest/entry/" + entry_id,
+        url: "//webapi.bmrb.wisc.edu/v2/entry/" + entry_id,
         success: function( url_data ){
 
             // See if the API has an error condition
