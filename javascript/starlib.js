@@ -1052,6 +1052,10 @@ function parseSTAR(star){
             if (token.startsWith("_")){
                 curloop.addColumn(token);
             }
+            else if (token == "stop_"){
+                curloop = null;
+                state = "saveframe";
+            }
             // On to data
             else {
                 curloop.addDatum(token);
