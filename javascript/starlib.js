@@ -427,6 +427,56 @@ LOOP.prototype.print = function() {
     return ret_string
 };
 
+LOOP.prototype.getDataTable = function(){
+    var table = $("<table></table>").addClass("twoindent alternatingcolor").css("maxWidth", "95%");
+    for (var d = 0; d < this.data.length; d++) {
+        var the_row = $("<tr></tr>");
+
+        for (var n = 0; n < this.data[d].length; n++) {
+            var tag_name = this.category + "." + this.columns[n];
+            var our_id = "star.saveframes[" + this.saveframe_ordinal + "].loops[" + this.ordinal + "].data[" + d + "][" + n + "]";
+            var datum = createEditableSpan(this.data[d][n], our_id).addClass("highlight");
+            datum.addClass(validateTag(tag_name, this.data[d][n]));
+            datum.prop("title", getTitle(tag_name, true));
+            datum.attr("onblur", datum.attr("onblur") + " updateDatum('" + tag_name + "', '" + our_id + "', this.innerHTML);");
+            datum.attr("id", our_id).attr("tag", tag_name);
+
+            if (this.data_in_column[n] == false) {
+                datum.addClass("empty");
+                if (!show_hidden_tags) {
+                    datum.hide();
+                }
+            }
+
+            datum.keypress(function (evt) {
+                if (evt.which == 13) {
+                    return insertUnicodeNewline($(this));
+                }
+            });
+            if (!offline) {
+                datum.focus(function () {
+                    $(this).autocomplete({
+                        source: "//webapi.bmrb.wisc.edu/v2/enumerations/".concat($(this).attr("tag")),
+                        delay: 100,
+                        minLength: 0
+                    });
+                });
+            }
+
+            var the_td = $("<td></td>");
+
+            if (this.data[d][n].startsWith("$")) {
+                the_td.append($("<a>Jump to: </a>").attr("href", "#" + this.data[d][n].substring(1)));
+            }
+
+            the_td.append(datum);
+            the_row.append(the_td);
+        }
+        table.append(the_row);
+    }
+    return table;
+}
+
 // Creates a HTML DOM representation of a loop
 LOOP.prototype.toHTML = function(attach_to){
 
@@ -457,52 +507,21 @@ LOOP.prototype.toHTML = function(attach_to){
         loop_div.append(lc);
     }
 
-    // With a table
-    var table = $("<table></table>").addClass("twoindent alternatingcolor").css("maxWidth", "95%");
-    for (var d=0; d < this.data.length; d++){
-        var the_row = $("<tr></tr>");
+    // Don't show huge tables
+    if (this.data.length * this.data[0].length < 5000) {
+        loop_div.append(this.getDataTable());
+    } else {
+        var closure_reference = this;
+        var warning_span = createUneditableSpan("Loop contains too much data to visualize. ").addClass("twoindent");
 
-        for (var n=0; n < this.data[d].length; n++){
-            var tag_name = this.category + "." + this.columns[n];
-            var our_id = "star.saveframes[" + this.saveframe_ordinal + "].loops[" + this.ordinal + "].data[" + d + "][" + n + "]";
-            var datum = createEditableSpan(this.data[d][n], our_id).addClass("highlight");
-            datum.addClass(validateTag(tag_name, this.data[d][n]));
-            datum.prop("title", getTitle(tag_name, true));
-            datum.attr("onblur", datum.attr("onblur") + " updateDatum('" + tag_name + "', '" + our_id + "', this.innerHTML);");
-            datum.attr("id", our_id).attr("tag", tag_name);
+        var override = $("<a href='javascript:void(0)'>Click to load anyways.</a>").click(function() {
+            warning_span.parent().find(warning_span).replaceWith(closure_reference.getDataTable());
+        });
 
-            if (this.data_in_column[n] == false){
-                datum.addClass("empty");
-                if (!show_hidden_tags){datum.hide();}
-            }
-
-            datum.keypress(function(evt) {
-                if(evt.which == 13) {
-                    return insertUnicodeNewline($(this));
-                }
-            });
-            if (!offline){
-                datum.focus(function(){
-                    $(this).autocomplete({
-                        source: "//webapi.bmrb.wisc.edu/v2/enumerations/".concat($(this).attr("tag")),
-                        delay: 100,
-                        minLength: 0
-                    });
-                });
-            }
-
-            var the_td = $("<td></td>");
-
-            if (this.data[d][n].startsWith("$")){
-                the_td.append($("<a>Jump to: </a>").attr("href", "#" + this.data[d][n].substring(1)));
-            }
-
-            the_td.append(datum);
-            the_row.append(the_td);
-        }
-        table.append(the_row);
+        warning_span.append(override);
+        warning_span.prepend($("<br>"));
+        loop_div.append(warning_span);
     }
-    loop_div.append(table);
 
     loop_div.append(createLineDiv().append(createUneditableSpan("stop_")).addClass("oneindent"));
     if (attach_to != null){
