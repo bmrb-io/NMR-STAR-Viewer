@@ -30,10 +30,7 @@
 <script>
 
     // Optionally enable debug output
-    debug = getURLParameter("debug");
-    if (debug == null){
-        debug = "";
-    }
+    DEBUG = getURLParameter("debug");
 
     // If an entry is specified in the URL try to load it
     function checkEntryLoad(){
