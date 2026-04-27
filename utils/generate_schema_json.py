@@ -9,7 +9,7 @@ from subprocess import call
 
 this_dir = os.path.dirname(os.path.realpath(__file__))
 dict_dir = os.path.join(this_dir, "nmr-star-dictionary")
-dict_remote = "https://github.com/bmrb-io/NMR-STAR-Viewer.git"
+dict_remote = "https://github.com/bmrb-io/nmr-star-dictionary.git"
 
 if not os.path.isdir(dict_dir):
     print("Downloading the NMR-STAR schema.")
@@ -18,7 +18,7 @@ else:
     print("Updating the NMR-STAR schema.")
     call(["git", "-C", dict_dir, "pull", "--ff-only"], stdout=open("/dev/null", "w"))
 
-csvfile = open(os.path.join(dict_dir, 'bmrb_only_files/adit_input/xlschem_ann.csv'), 'r', newline='')
+csvfile = open(os.path.join(dict_dir, 'NMR-STAR/internal_106_distribution/xlschem_ann.csv'), 'r', newline='')
 jsonfile = open(os.path.join(this_dir, "../javascript/schema.js"), 'w')
 
 dictionary = {}
